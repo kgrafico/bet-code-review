@@ -47,7 +47,7 @@ This is fine. Hopefully you should be able to understand enough of what's going 
 At work, code reviews are usually done through tools like github or bitbucket but for simplicity for this test, please add your suggestions as code comments throughout the app, and add a markdown file with general comments before zipping / bundling the repo up and returning it to us.
 ​
 ## About this app
-This app is a very simple web crawler written in Node.js with React UI (and Next.js) to display the results. The results are sent to the UI via a websocket connection (using socket.io). The UI supplies the server three parameters - the URL to start with, a regular expression specifying which URLs it should follow, and the maximum number of HTTP requests that should be performed concurrently.
+This app is a web crawler written in Node.js with React UI (and Next.js) to display the results. The results are sent to the UI via a websocket connection (using socket.io). The UI supplies the server three parameters - the URL to start with, a regular expression specifying which URLs it should follow, and the maximum number of HTTP requests that should be performed concurrently.
 ​
 ## Acceptance criteria for this app
 
