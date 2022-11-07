@@ -1,23 +1,9 @@
 import { Server } from "socket.io";
-import type { NextApiRequest, NextApiResponse } from "next";
-import run, { StatusEvent } from "./util/crawler";
-import type { Server as HTTPServer } from "http";
-import type { Socket as NetSocket } from "net";
-import type { Server as IOServer } from "socket.io";
+import type { NextApiRequest } from "next";
+import run from "./util/crawler";
+import { NextApiResponseWithSocket, StatusEvent } from "../../types";
 
-interface SocketServer extends HTTPServer {
-  io?: IOServer | undefined;
-}
-
-interface SocketWithIO extends NetSocket {
-  server: SocketServer;
-}
-
-interface NextApiResponseWithSocket extends NextApiResponse {
-  socket: SocketWithIO;
-}
-
-export default (_req: NextApiRequest, res: NextApiResponseWithSocket) => {
+const ioHandler = (_req: NextApiRequest, res: NextApiResponseWithSocket) => {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server);
     res.socket.server.io = io;
@@ -27,15 +13,13 @@ export default (_req: NextApiRequest, res: NextApiResponseWithSocket) => {
 
     let cancel: () => void = null;
 
-    function cancelIfRunning() {
+    const cancelIfRunning = () => {
       if (cancel) {
+        socket.disconnect();
+        socket.removeAllListeners();
         cancel();
       }
     }
-
-    socket.on("disconnect", () => {
-      cancelIfRunning();
-    });
 
     socket.on("cancel", () => {
       cancelIfRunning();
@@ -44,27 +28,25 @@ export default (_req: NextApiRequest, res: NextApiResponseWithSocket) => {
     socket.on(
       "start",
       (
-        url: string,
-        followUrlRestriction: string,
-        maxConcurrentRequests: number
+        data
       ) => {
         const runner = run(
-          url,
-          followUrlRestriction,
-          maxConcurrentRequests
+          data.url,
+          data.followUrlRestriction,
+          data.maxConcurrentRequests
         );
 
-        runner.status.on(StatusEvent.PROCESSING, function (url: string) {
+        runner.status.on(StatusEvent.PROCESSING, (url: string) => {
           socket.emit("processing", url);
         });
 
-        runner.status.on(StatusEvent.PROCESSED, function (url: string, _body: string) {
+        runner.status.on(StatusEvent.PROCESSED, (url: string, _body: string) => {
           socket.emit("processed", url);
         });
 
         runner.status.on(
           StatusEvent.SEEN,
-          function (url: string, shouldFollow: boolean) {
+          (url: string, shouldFollow: boolean) => {
             socket.emit("seen", url, shouldFollow);
           }
         );
@@ -75,3 +57,5 @@ export default (_req: NextApiRequest, res: NextApiResponseWithSocket) => {
   });
   res.end();
 };
+
+export default ioHandler;
